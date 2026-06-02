@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from closer_app.discovery import discover_prospects
+from closer_app.discovery import discover_prospects, search_public_web
 
 
 class DiscoveryTests(unittest.TestCase):
@@ -30,6 +30,20 @@ class DiscoveryTests(unittest.TestCase):
             )
 
         self.assertEqual(prospects, [])
+
+    def test_tavily_uses_bearer_token_auth(self):
+        calls = []
+
+        def fake_http_json(url, headers=None, payload=None):
+            calls.append({"url": url, "headers": headers or {}, "payload": payload or {}})
+            return {"results": [{"title": "Nurse Coach", "url": "https://example.com", "content": "Book a call"}]}
+
+        with mock.patch("closer_app.discovery._http_json", side_effect=fake_http_json):
+            results = search_public_web("tavily", "nurse coach", api_key="tvly-test", num_results=3)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(calls[0]["headers"]["Authorization"], "Bearer tvly-test")
+        self.assertNotIn("api_key", calls[0]["payload"])
 
 
 if __name__ == "__main__":

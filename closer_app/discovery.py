@@ -61,8 +61,8 @@ def search_public_web(provider: str, query: str, api_key: str = "", num_results:
         if provider == "tavily":
             data = _http_json(
                 "https://api.tavily.com/search",
-                headers={"Content-Type": "application/json"},
-                payload={"api_key": api_key, "query": query, "max_results": num_results, "search_depth": "basic"},
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+                payload={"query": query, "max_results": num_results, "search_depth": "basic"},
             )
             return [
                 {"title": item.get("title", ""), "url": item.get("url", ""), "snippet": item.get("content", "")}
