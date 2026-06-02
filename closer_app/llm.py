@@ -30,7 +30,7 @@ def chat_completion(
     if not key:
         return ""
     payload = {
-        "model": model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+        "model": model or os.environ.get("OPENAI_MODEL", "gpt-5.5"),
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -115,4 +115,3 @@ def classify_and_score(prospect: Dict[str, object], api_key: str = "") -> Dict[s
     except (TypeError, ValueError):
         merged["fit_score"] = fallback["fit_score"]
     return merged
-

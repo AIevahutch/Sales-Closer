@@ -55,7 +55,7 @@ def runtime_settings(conn) -> Dict[str, str]:
     saved = get_settings(conn)
     return {
         "openai_api_key": env_or_setting(saved, "openai_api_key", "OPENAI_API_KEY"),
-        "openai_model": env_or_setting(saved, "openai_model", "OPENAI_MODEL") or "gpt-4o-mini",
+        "openai_model": env_or_setting(saved, "openai_model", "OPENAI_MODEL") or "gpt-5.5",
         "search_provider": env_or_setting(saved, "search_provider", "SEARCH_PROVIDER") or "sample",
         "search_api_key": env_or_setting(saved, "search_api_key", "SEARCH_API_KEY"),
         "default_daily_outreach_cap": env_or_setting(saved, "default_daily_outreach_cap", "DEFAULT_DAILY_OUTREACH_CAP")
