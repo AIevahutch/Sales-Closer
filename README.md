@@ -95,3 +95,6 @@ Run the dependency-light core test suite with:
 python3 -m unittest discover -s tests
 ```
 
+## Local Runtime Notes
+
+If Streamlit starts slowly or shows frontend/network warnings while this project is stored in iCloud Drive, move the project or at least the virtual environment to a fully local folder with several GB of free disk space, then reinstall dependencies. The app avoids pandas/Arrow-backed Streamlit table widgets, but Streamlit still serves frontend assets from the active environment, so cloud-placeholder files can cause local launch timeouts.

@@ -60,7 +60,8 @@ def normalize_instagram_handle(value: object) -> str:
     text = text.replace("http://instagram.com/", "")
     text = text.strip("/").split("/")[0]
     text = text.lstrip("@")
-    return re.sub(r"[^a-z0-9._]", "", text)
+    text = re.sub(r"[^a-z0-9._]", "", text)
+    return text.strip("._")
 
 
 def instagram_url_from_handle(handle: object) -> str:
@@ -135,4 +136,3 @@ def mask_secret(value: str) -> str:
 def env_or_setting(settings: Dict[str, str], key: str, env_key: Optional[str] = None) -> str:
     env_name = env_key or key.upper()
     return os.environ.get(env_name) or settings.get(key, "")
-

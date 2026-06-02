@@ -6,6 +6,7 @@ import csv
 import io
 import os
 import sqlite3
+import tempfile
 from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -21,19 +22,40 @@ from .utils import (
 )
 
 DEFAULT_DB_PATH = "data/closer_acquisition.sqlite3"
+FALLBACK_DB_FILENAME = "closer_acquisition.sqlite3"
 
 
 def default_db_path() -> str:
     return os.environ.get("CLOSER_DB_PATH", DEFAULT_DB_PATH)
 
 
-def get_connection(path: Optional[str] = None) -> sqlite3.Connection:
-    db_path = Path(path or default_db_path())
+def fallback_db_path() -> str:
+    return str(Path(tempfile.gettempdir()) / FALLBACK_DB_FILENAME)
+
+
+def _connect(db_path: Path) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     init_db(conn)
     return conn
+
+
+def get_connection(path: Optional[str] = None) -> sqlite3.Connection:
+    db_path = Path(path or default_db_path())
+    try:
+        return _connect(db_path)
+    except sqlite3.OperationalError as exc:
+        message = str(exc).lower()
+        explicit_path = bool(path or os.environ.get("CLOSER_DB_PATH"))
+        if explicit_path or ("disk i/o" not in message and "unable to open" not in message):
+            raise
+        return _connect(Path(fallback_db_path()))
+
+
+def connection_db_path(conn: sqlite3.Connection) -> str:
+    row = conn.execute("PRAGMA database_list").fetchone()
+    return row["file"] if row and row["file"] else ":memory:"
 
 
 def init_db(conn: sqlite3.Connection) -> None:
@@ -90,7 +112,7 @@ def normalize_prospect(raw: Dict[str, object]) -> Dict[str, str]:
     normalized["instagram_handle"] = normalize_instagram_handle(
         normalized.get("instagram_handle") or normalized.get("instagram_url")
     )
-    if normalized["instagram_handle"] and not normalized.get("instagram_url"):
+    if normalized["instagram_handle"]:
         normalized["instagram_url"] = f"https://www.instagram.com/{normalized['instagram_handle']}/"
     normalized.setdefault("status", "New")
     if not normalized["status"]:

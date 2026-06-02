@@ -85,14 +85,8 @@ def search_public_web(provider: str, query: str, api_key: str = "", num_results:
                 {"title": item.get("title", ""), "url": item.get("link", ""), "snippet": item.get("snippet", "")}
                 for item in data.get("organic_results", [])
             ]
-    except Exception as exc:  # Keep discovery usable when a provider fails.
-        return [
-            {
-                "title": "Search provider error",
-                "url": "",
-                "snippet": f"{provider} search failed: {exc}. Check API key/settings or switch to sample mode.",
-            }
-        ]
+    except Exception:  # Keep discovery usable without polluting the queue with fake leads.
+        return []
     return sample_search_results(query, num_results)
 
 
@@ -188,4 +182,3 @@ def discover_prospects(
         prospect.update(classify_and_score(prospect, api_key=openai_api_key))
         prospects.append(prospect)
     return prospects
-

@@ -18,6 +18,7 @@ from closer_app.constants import (
 )
 from closer_app.approval import require_current_approved_dm, require_current_approved_email
 from closer_app.db import (
+    connection_db_path,
     daily_instagram_queue,
     delete_prospect,
     export_csv,
@@ -103,6 +104,10 @@ def priority_chart_rows(prospects: List[Dict[str, object]]) -> List[Dict[str, ob
     ordered = [priority for priority in PRIORITIES if priority in counts]
     ordered.extend(sorted(priority for priority in counts if priority not in PRIORITIES))
     return [{"priority": priority, "count": counts[priority]} for priority in ordered]
+
+
+def metric_suffix(label: str) -> str:
+    return "%" if label.lower().endswith("rate") else ""
 
 
 def prospect_options(rows: List[Dict[str, object]]) -> Dict[str, int]:
@@ -723,7 +728,7 @@ with tabs[7]:
         cols = st.columns(4)
         for col, (label, value) in zip(cols, metric_items[row_start : row_start + 4]):
             with col:
-                suffix = "%" if "rate" in label.lower() else ""
+                suffix = metric_suffix(label)
                 st.metric(label, f"{value}{suffix}")
     prospects = list_prospects(conn, limit=10000)
     if prospects:
@@ -784,6 +789,6 @@ with tabs[8]:
         {
             "Gmail API credentials status": gmail_status,
             "Instagram sending": "Manual tracking only in MVP",
-            "Database path": os.environ.get("CLOSER_DB_PATH", "data/closer_acquisition.sqlite3"),
+            "Database path": connection_db_path(conn),
         }
     )

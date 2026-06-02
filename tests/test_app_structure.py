@@ -68,7 +68,20 @@ class AppStructureTests(unittest.TestCase):
         for term in ["nurse business coach", "nurse career coach", "aba business coach", "bcba business coach"]:
             self.assertIn(term, all_queries)
 
+    def test_app_avoids_arrow_backed_widgets_for_local_reliability(self):
+        app_source = Path("app.py").read_text()
+        requirements = Path("requirements.txt").read_text()
+
+        for widget in ["st.dataframe", "st.data_editor", "st.bar_chart"]:
+            self.assertNotIn(widget, app_source)
+        self.assertNotIn("pandas", requirements)
+
+    def test_metric_percent_suffix_only_applies_to_rate_labels(self):
+        app_source = Path("app.py").read_text()
+
+        self.assertIn('label.lower().endswith("rate")', app_source)
+        self.assertNotIn('"rate" in label.lower()', app_source)
+
 
 if __name__ == "__main__":
     unittest.main()
-

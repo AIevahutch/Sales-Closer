@@ -7,6 +7,23 @@ from typing import Dict
 from .llm import chat_completion
 from .utils import clean_text, first_non_empty
 
+TITLE_TOKENS = {"dr", "dr.", "mr", "mr.", "mrs", "mrs.", "ms", "ms."}
+ORGANIZATION_NAME_TOKENS = {
+    "academy",
+    "business",
+    "coach",
+    "coaches",
+    "coaching",
+    "collective",
+    "connection",
+    "inc",
+    "job",
+    "nurse",
+    "remote",
+    "rx",
+    "the",
+}
+
 
 def _observation(prospect: Dict[str, object]) -> str:
     for key in [
@@ -40,11 +57,38 @@ def _first_name(prospect: Dict[str, object]) -> str:
     name = clean_text(prospect.get("name"))
     if not name:
         return "there"
-    return name.split()[0].strip(",")
+    brand = clean_text(prospect.get("brand"))
+    raw_tokens = [token.strip(",.") for token in name.split() if token.strip(",.")]
+    if brand and name.lower() == brand.lower() and any(token.lower() in ORGANIZATION_NAME_TOKENS for token in raw_tokens):
+        return "there"
+    tokens = raw_tokens
+    while tokens and tokens[0].lower() in TITLE_TOKENS:
+        tokens.pop(0)
+    if not tokens:
+        return "there"
+    if len(tokens) > 1 and tokens[0].lower() in ORGANIZATION_NAME_TOKENS:
+        return "there"
+    return tokens[0]
 
 
 def _brand_or_name(prospect: Dict[str, object]) -> str:
     return first_non_empty(prospect.get("brand"), prospect.get("name"), prospect.get("instagram_handle"), "your brand")
+
+
+def _possessive_brand(prospect: Dict[str, object]) -> str:
+    brand = _brand_or_name(prospect)
+    return brand + ("'" if brand.endswith("s") else "'s")
+
+
+def _safe_observation(prospect: Dict[str, object], max_length: int = 150) -> str:
+    text = clean_text(_observation(prospect), max_length)
+    text = text.replace("source note says", "")
+    text = text.replace("Source note says", "")
+    text = text.replace("source says", "")
+    text = text.replace("Source says", "")
+    if clean_text(prospect.get("engagement_review_status")) != "Manually Verified":
+        text = text.replace("50K+ nurses listed in bio snippet", "a remote nursing audience")
+    return clean_text(text).strip(" .")
 
 
 def generate_instagram_dm(prospect: Dict[str, object], api_key: str = "") -> str:
@@ -70,9 +114,10 @@ Required structure:
     if generated:
         return generated
 
+    observation = _safe_observation(prospect, 130)
     return (
-        f"Hi {_first_name(prospect)}, I love how you're helping {_audience(prospect)}. "
-        f"I noticed {clean_text(_observation(prospect), 130)}.\n\n"
+        f"Hi {_first_name(prospect)}, I appreciated {_possessive_brand(prospect)} focus on {_audience(prospect)}. "
+        f"The public note I have is: {observation}.\n\n"
         "I'm a former RN and healthcare recruiting leader. At Kaiser, I supported large "
         "healthcare pipelines and helped move healthcare professionals from interest to final decision, "
         "including 1,200+ interested leads and a 95%+ offer acceptance rate.\n\n"
@@ -111,7 +156,7 @@ and a clear ask for a quick conversation.
     body = (
         f"Hi {_first_name(prospect)},\n\n"
         f"I came across {_brand_or_name(prospect)} and appreciated the focus on {_audience(prospect)}. "
-        f"The note that stood out to me was: {clean_text(_observation(prospect), 160)}.\n\n"
+        f"The note that stood out to me was: {_safe_observation(prospect, 160)}.\n\n"
         "I'm a former RN and healthcare recruiting leader with Kaiser Permanente sourcing experience. "
         "Across healthcare recruiting work, I contacted 10,000+ healthcare professionals, generated "
         "1,200+ interested leads, supported 40+ hires, and helped maintain a 95%+ offer acceptance rate.\n\n"
@@ -182,4 +227,3 @@ def generate_response_script(scenario: str, prospect: Dict[str, object], api_key
         "lead organization so interested prospects do not fall through the cracks. Because I am moving from healthcare "
         "recruiting into closing, I would suggest starting with a clearly scoped commission-only trial."
     )
-

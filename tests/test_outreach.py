@@ -20,6 +20,50 @@ class OutreachTests(unittest.TestCase):
         self.assertIn("AI/Codex", dm)
         self.assertNotIn("engagement", dm.lower())
 
+    def test_dm_fallback_uses_human_greeting_and_clean_public_note(self):
+        dm = generate_instagram_dm(
+            {
+                "name": "The Nurse Coach Collective",
+                "brand": "The Nurse Coach Collective",
+                "category": "Nurse coach certification program",
+                "bio_notes": "Nurse coach certification / training program. source note says ANCC-accredited programming.",
+                "engagement_review_status": "Needs Manual Review",
+            }
+        )
+
+        self.assertIn("Hi there,", dm)
+        self.assertNotIn("Hi The,", dm)
+        self.assertNotIn("source note says", dm)
+        self.assertNotIn("..", dm)
+
+    def test_dm_fallback_uses_generic_greeting_for_organization_name(self):
+        dm = generate_instagram_dm(
+            {
+                "name": "Integrative Nurse Coach Academy",
+                "brand": "Integrative Nurse Coach Academy",
+                "category": "Nurse coach certification program",
+                "bio_notes": "Nurse coach certification/community; ANCC-accredited programming.",
+                "engagement_review_status": "Needs Manual Review",
+            }
+        )
+
+        self.assertIn("Hi there,", dm)
+        self.assertNotIn("Hi Integrative,", dm)
+
+    def test_dm_fallback_skips_titles_in_names(self):
+        dm = generate_instagram_dm(
+            {
+                "name": "Dr. Farah Laurent",
+                "brand": "Nurse Farah",
+                "category": "Nurse career coach",
+                "bio_notes": "Helps new grad nurses get hired into specialty units.",
+                "engagement_review_status": "Needs Manual Review",
+            }
+        )
+
+        self.assertIn("Hi Farah,", dm)
+        self.assertNotIn("Hi Dr.", dm)
+
     def test_response_script_does_not_claim_closing_experience(self):
         script = generate_response_script("Do you have closing experience?", {})
 
@@ -44,4 +88,3 @@ class OutreachTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
