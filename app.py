@@ -16,7 +16,7 @@ from closer_app.constants import (
     SEARCH_PROVIDERS,
     TARGET_CATEGORIES,
 )
-from closer_app.approval import require_current_approved_dm, require_current_approved_email
+from closer_app.approval import require_current_approved_dm
 from closer_app.db import (
     connection_db_path,
     daily_instagram_queue,
@@ -58,9 +58,6 @@ def runtime_settings(conn) -> Dict[str, str]:
         "openai_model": env_or_setting(saved, "openai_model", "OPENAI_MODEL") or "gpt-4o-mini",
         "search_provider": env_or_setting(saved, "search_provider", "SEARCH_PROVIDER") or "sample",
         "search_api_key": env_or_setting(saved, "search_api_key", "SEARCH_API_KEY"),
-        "gmail_credentials_file": env_or_setting(saved, "gmail_credentials_file", "GMAIL_CREDENTIALS_FILE")
-        or "data/gmail_credentials.json",
-        "sender_email": env_or_setting(saved, "sender_email", "SENDER_EMAIL"),
         "default_daily_outreach_cap": env_or_setting(saved, "default_daily_outreach_cap", "DEFAULT_DAILY_OUTREACH_CAP")
         or "12",
         "dm_automation_mode": saved.get("dm_automation_mode", "Manual MVP mode"),
@@ -153,12 +150,6 @@ def make_response_script(scenario: str, prospect: Dict[str, object], api_key: st
     from closer_app.outreach import generate_response_script
 
     return generate_response_script(scenario, prospect, api_key=api_key)
-
-
-def send_email_after_approval(prospect: Dict[str, object], sender_email: str, credentials_file: str) -> Dict[str, str]:
-    from closer_app.gmail_service import send_approved_email
-
-    return send_approved_email(prospect, sender_email=sender_email, credentials_file=credentials_file)
 
 
 conn = get_connection()
@@ -576,7 +567,7 @@ with tabs[4]:
                 rerun()
             subject = st.text_input("Subject", value=clean_text(selected.get("email_subject")))
             body = st.text_area("Editable email body", value=clean_text(selected.get("email_body")), height=280)
-            email_actions = st.columns(3)
+            email_actions = st.columns(2)
             with email_actions[0]:
                 if st.button("Save email draft"):
                     update_prospect(
@@ -600,28 +591,7 @@ with tabs[4]:
                     )
                     st.success("Email approved.")
                     rerun()
-            with email_actions[2]:
-                if st.button("Send approved email"):
-                    latest = get_prospect(conn, int(selected["prospect_id"])) or selected
-                    ok, message = require_current_approved_email(latest, subject, body)
-                    if not ok:
-                        st.error(message)
-                    else:
-                        result = send_email_after_approval(
-                            latest,
-                            sender_email=settings["sender_email"],
-                            credentials_file=settings["gmail_credentials_file"],
-                        )
-                        if result["ok"] == "true":
-                            update_prospect(
-                                conn,
-                                int(selected["prospect_id"]),
-                                {"email_status": "Sent", "date_email_sent": today_iso(), "response_notes": result["message"]},
-                            )
-                            st.success(result["message"])
-                            rerun()
-                        else:
-                            st.error(result["message"])
+            st.info("Gmail sending is deferred for this MVP. Use approved email drafts for manual sending.")
 
 
 with tabs[5]:
@@ -752,8 +722,6 @@ with tabs[8]:
             )
             search_api_key = st.text_input("Search API key", value=settings["search_api_key"], type="password")
         with c2:
-            gmail_credentials_file = st.text_input("Gmail credentials file", value=settings["gmail_credentials_file"])
-            sender_email = st.text_input("Sender email", value=settings["sender_email"])
             default_daily_outreach_cap = st.number_input(
                 "Default daily outreach cap",
                 min_value=1,
@@ -774,8 +742,6 @@ with tabs[8]:
                     "openai_model": openai_model,
                     "search_provider": search_provider,
                     "search_api_key": search_api_key,
-                    "gmail_credentials_file": gmail_credentials_file,
-                    "sender_email": sender_email,
                     "default_daily_outreach_cap": str(default_daily_outreach_cap),
                     "dm_automation_mode": dm_automation_mode,
                     "default_follow_up_timing": followup_timing,
@@ -784,10 +750,9 @@ with tabs[8]:
             st.success("Settings saved locally.")
             rerun()
 
-    gmail_status = "Configured" if settings["gmail_credentials_file"] and os.path.exists(settings["gmail_credentials_file"]) else "Not configured"
     st.write(
         {
-            "Gmail API credentials status": gmail_status,
+            "Email sending": "Manual/deferred in MVP",
             "Instagram sending": "Manual tracking only in MVP",
             "Database path": connection_db_path(conn),
         }

@@ -28,7 +28,7 @@ class AppStructureTests(unittest.TestCase):
             "Approve DM",
             "Mark DM Sent",
             "Approve email",
-            "Send approved email",
+            "Gmail sending is deferred for this MVP",
             "Export all prospects CSV",
         ]:
             self.assertIn(label, app_source)

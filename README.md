@@ -9,7 +9,7 @@ Local Streamlit app for helping Eva Hutchins discover, score, prioritize, and fo
 - Classifies and scores prospects with explainable fit reasons.
 - Prioritizes Very High and High-fit Instagram outreach.
 - Generates personalized Instagram DMs for review and manual sending.
-- Generates personalized emails and sends only after approval through Gmail API.
+- Generates personalized email drafts for review and manual sending.
 - Calculates follow-up dates and tracks replies, booked calls, trials, and closed clients.
 - Supports CSV import/export and daily metrics.
 
@@ -40,8 +40,6 @@ cp .env.example .env
 OPENAI_API_KEY=your_openai_key
 SEARCH_PROVIDER=sample
 SEARCH_API_KEY=
-GMAIL_CREDENTIALS_FILE=data/gmail_credentials.json
-SENDER_EMAIL=you@example.com
 ```
 
 Use `SEARCH_PROVIDER=sample` for no-cost demo discovery. Supported public search API provider values are `sample`, `tavily`, `brave`, and `serpapi`.
@@ -65,24 +63,16 @@ streamlit run app.py
 - Mark DMs as sent.
 - Track replies and follow-ups.
 
-## Gmail API
+## Email
 
-Email sending is approval-gated. The app will not send email unless the prospect email status is `Approved`.
-
-To enable Gmail:
-
-- Create OAuth client credentials in Google Cloud for Gmail API.
-- Save the client secret JSON at `data/gmail_credentials.json`.
-- Set `SENDER_EMAIL`.
-- Approve an email draft in the app, then click `Send approved email`.
-- The first send opens a local OAuth flow and stores `data/gmail_token.json`.
+Gmail API sending is intentionally deferred from the MVP. The app can generate, edit, and approve email drafts, but Eva sends any email manually outside the app. This keeps the first version focused on Instagram outreach and avoids OAuth setup complexity.
 
 ## Safety Rules
 
 - Use public web/search results only.
 - Do not scrape private data or bypass platform restrictions.
 - Instagram sending is manual in the MVP.
-- Email sending requires explicit approval.
+- Email sending is manual/deferred in the MVP.
 - Unknown pricing stays `Unknown`.
 - Unverified Instagram engagement stays `Needs Manual Review`.
 - Outreach must not claim Eva has already closed high-ticket coaching offers.
