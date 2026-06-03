@@ -56,6 +56,7 @@ def runtime_settings(conn) -> Dict[str, str]:
     return {
         "openai_api_key": env_or_setting(saved, "openai_api_key", "OPENAI_API_KEY"),
         "openai_model": env_or_setting(saved, "openai_model", "OPENAI_MODEL") or "gpt-5.5",
+        "openai_service_tier": env_or_setting(saved, "openai_service_tier", "OPENAI_SERVICE_TIER") or "default",
         "search_provider": env_or_setting(saved, "search_provider", "SEARCH_PROVIDER") or "sample",
         "search_api_key": env_or_setting(saved, "search_api_key", "SEARCH_API_KEY"),
         "default_daily_outreach_cap": env_or_setting(saved, "default_daily_outreach_cap", "DEFAULT_DAILY_OUTREACH_CAP")
@@ -155,6 +156,7 @@ def make_response_script(scenario: str, prospect: Dict[str, object], api_key: st
 conn = get_connection()
 settings = runtime_settings(conn)
 os.environ.setdefault("OPENAI_MODEL", settings["openai_model"])
+os.environ.setdefault("OPENAI_SERVICE_TIER", settings["openai_service_tier"])
 
 st.title("Instagram-First Closer Client Acquisition")
 st.caption("Local prospect discovery, scoring, Instagram-first outreach, approved email sending, and follow-up tracking.")
@@ -713,6 +715,14 @@ with tabs[8]:
         with c1:
             openai_api_key = st.text_input("OpenAI API key", value=settings["openai_api_key"], type="password")
             openai_model = st.text_input("OpenAI model", value=settings["openai_model"])
+            service_tiers = ["default", "auto", "flex", "priority"]
+            openai_service_tier = st.selectbox(
+                "OpenAI service tier",
+                service_tiers,
+                index=service_tiers.index(settings["openai_service_tier"])
+                if settings["openai_service_tier"] in service_tiers
+                else 0,
+            )
             search_provider = st.selectbox(
                 "Search API provider",
                 SEARCH_PROVIDERS,
@@ -740,6 +750,7 @@ with tabs[8]:
                 {
                     "openai_api_key": openai_api_key,
                     "openai_model": openai_model,
+                    "openai_service_tier": openai_service_tier,
                     "search_provider": search_provider,
                     "search_api_key": search_api_key,
                     "default_daily_outreach_cap": str(default_daily_outreach_cap),
@@ -754,6 +765,7 @@ with tabs[8]:
         {
             "Email sending": "Manual/deferred in MVP",
             "Instagram sending": "Manual tracking only in MVP",
+            "OpenAI service tier": settings["openai_service_tier"],
             "Database path": connection_db_path(conn),
         }
     )

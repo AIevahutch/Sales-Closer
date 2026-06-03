@@ -12,10 +12,16 @@ from .scoring import score_prospect
 from .utils import clean_text
 
 OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_SERVICE_TIERS = {"auto", "default", "flex", "priority", "scale"}
 
 
 def _api_key(explicit: str = "") -> str:
     return explicit or os.environ.get("OPENAI_API_KEY", "")
+
+
+def _service_tier() -> str:
+    tier = clean_text(os.environ.get("OPENAI_SERVICE_TIER", "default")).lower()
+    return tier if tier in OPENAI_SERVICE_TIERS else "default"
 
 
 def chat_completion(
@@ -31,6 +37,7 @@ def chat_completion(
         return ""
     payload = {
         "model": model or os.environ.get("OPENAI_MODEL", "gpt-5.5"),
+        "service_tier": _service_tier(),
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

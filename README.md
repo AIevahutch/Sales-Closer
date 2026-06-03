@@ -39,12 +39,13 @@ cp .env.example .env
 ```bash
 OPENAI_API_KEY=your_openai_key
 OPENAI_MODEL=gpt-5.5
+OPENAI_SERVICE_TIER=default
 SEARCH_PROVIDER=sample
 SEARCH_API_KEY=
 ```
 
 Use `SEARCH_PROVIDER=sample` for no-cost demo discovery. Supported public search API provider values are `sample`, `tavily`, `brave`, and `serpapi`.
-The app does not set `service_tier`, so OpenAI requests use the project default/standard processing unless you configure a different tier in the OpenAI project.
+Use `OPENAI_SERVICE_TIER=default` for standard OpenAI API processing. Do not use `flex` or `priority` for this MVP unless you intentionally want lower-cost slower processing or premium lower-latency processing.
 
 5. Run the app locally.
 
