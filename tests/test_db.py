@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from closer_app.db import daily_instagram_queue, get_connection, get_prospect, init_db, list_prospects, upsert_prospect
+from closer_app.db import daily_instagram_queue, get_connection, get_prospect, init_db, list_prospects, metrics, upsert_prospect
 
 
 class DatabaseTests(unittest.TestCase):
@@ -63,8 +63,8 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(saved["instagram_handle"], "rncoachstudio")
         self.assertEqual(saved["instagram_url"], "https://www.instagram.com/rncoachstudio/")
 
-    def test_daily_queue_uses_medium_only_when_no_high_priority_exists(self):
-        upsert_prospect(
+    def test_daily_queue_backfills_medium_after_high_priority(self):
+        medium_id, _ = upsert_prospect(
             self.conn,
             {
                 "brand": "Medium Prospect",
@@ -85,7 +85,7 @@ class DatabaseTests(unittest.TestCase):
 
         queue = daily_instagram_queue(self.conn, cap=12)
 
-        self.assertEqual([row["prospect_id"] for row in queue], [high_id])
+        self.assertEqual([row["prospect_id"] for row in queue], [high_id, medium_id])
 
     def test_daily_queue_falls_back_to_medium_when_no_high_priority_exists(self):
         medium_id, _ = upsert_prospect(
@@ -101,6 +101,49 @@ class DatabaseTests(unittest.TestCase):
         queue = daily_instagram_queue(self.conn, cap=12)
 
         self.assertEqual([row["prospect_id"] for row in queue], [medium_id])
+
+    def test_metrics_include_priority_and_instagram_ready_counts(self):
+        upsert_prospect(
+            self.conn,
+            {
+                "brand": "Very High Prospect",
+                "instagram_url": "https://www.instagram.com/veryhighfit/",
+                "priority": "Very High",
+                "fit_score": "90",
+            },
+        )
+        upsert_prospect(
+            self.conn,
+            {
+                "brand": "High Prospect Without Instagram",
+                "priority": "High",
+                "fit_score": "75",
+            },
+        )
+        upsert_prospect(
+            self.conn,
+            {
+                "brand": "Sent High Prospect",
+                "instagram_url": "https://www.instagram.com/sentfit/",
+                "priority": "High",
+                "fit_score": "74",
+                "status": "Sent",
+            },
+        )
+        upsert_prospect(
+            self.conn,
+            {
+                "brand": "Medium Prospect",
+                "instagram_url": "https://www.instagram.com/mediumfit/",
+                "priority": "Medium",
+                "fit_score": "55",
+            },
+        )
+
+        stats = metrics(self.conn)
+
+        self.assertEqual(stats["Priority prospects"], 3)
+        self.assertEqual(stats["Instagram-ready active"], 2)
 
     def test_default_connection_falls_back_to_temp_db_on_disk_io_error(self):
         original_connect = sqlite3.connect

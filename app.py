@@ -161,6 +161,13 @@ os.environ.setdefault("OPENAI_SERVICE_TIER", settings["openai_service_tier"])
 st.title("Instagram-First Closer Client Acquisition")
 st.caption("Local prospect discovery, scoring, Instagram-first outreach, approved email sending, and follow-up tracking.")
 
+summary_stats = metrics(conn)
+summary_cols = st.columns(4)
+summary_cols[0].metric("Total prospects", summary_stats["Total prospects saved"])
+summary_cols[1].metric("Priority prospects", summary_stats["Priority prospects"])
+summary_cols[2].metric("Instagram-ready", summary_stats["Instagram-ready active"])
+summary_cols[3].metric("Daily cap", settings["default_daily_outreach_cap"])
+
 tabs = st.tabs(
     [
         "Prospect Discovery",

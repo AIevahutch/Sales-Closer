@@ -296,7 +296,7 @@ def daily_instagram_queue(conn: sqlite3.Connection, cap: int = 12) -> List[Dict[
         """,
         (cap,),
     ).fetchall()
-    if high_rows:
+    if len(high_rows) >= cap:
         return [_row_to_dict(row) for row in high_rows]
 
     medium_rows = conn.execute(
@@ -311,9 +311,9 @@ def daily_instagram_queue(conn: sqlite3.Connection, cap: int = 12) -> List[Dict[
         ORDER BY CAST(NULLIF(fit_score, '') AS INTEGER) DESC, date_added ASC
         LIMIT ?
         """,
-        (cap,),
+        (cap - len(high_rows),),
     ).fetchall()
-    return [_row_to_dict(row) for row in medium_rows]
+    return [_row_to_dict(row) for row in [*high_rows, *medium_rows]]
 
 
 def followups_due(conn: sqlite3.Connection, on_or_before: str) -> List[Dict[str, object]]:
@@ -366,11 +366,18 @@ def metrics(conn: sqlite3.Connection) -> Dict[str, object]:
     calls = count_where(lambda row: row.get("status") in {"Call Booked", "Trial Offered", "Closed Client"})
     trials = count_where(lambda row: row.get("status") in {"Trial Offered", "Closed Client"})
     closed = count_where(lambda row: row.get("status") == "Closed Client")
+    priority_prospects = count_where(lambda row: row.get("priority") in {"Very High", "High"})
+    instagram_ready = count_where(
+        lambda row: clean_text(row.get("instagram_url"))
+        and row.get("status") not in {"Sent", "Replied", "Call Booked", "Trial Offered", "Closed Client", "Not a Fit"}
+    )
 
     return {
         "Total prospects discovered": len(rows),
         "Total prospects saved": len(rows),
         "Total prospects scored": count_where(lambda row: clean_text(row.get("fit_score"))),
+        "Priority prospects": priority_prospects,
+        "Instagram-ready active": instagram_ready,
         "Very High prospects": count_where(lambda row: row.get("priority") == "Very High"),
         "High prospects": count_where(lambda row: row.get("priority") == "High"),
         "DMs generated": count_where(lambda row: row.get("date_dm_generated")),
