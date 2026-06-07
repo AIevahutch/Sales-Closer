@@ -16,6 +16,7 @@ from .utils import (
     clean_text,
     compact_join,
     extract_domain,
+    is_placeholder_url,
     normalize_instagram_handle,
     now_iso,
     today_iso,
@@ -23,6 +24,20 @@ from .utils import (
 
 DEFAULT_DB_PATH = "data/closer_acquisition.sqlite3"
 FALLBACK_DB_FILENAME = "closer_acquisition.sqlite3"
+SAMPLE_PROSPECT_BRANDS = {
+    "rn business coach - book a strategy call",
+    "bcba practice growth consultant",
+    "remote nurse career coach",
+    "autism provider business mastermind",
+}
+URL_COLUMNS = (
+    "instagram_url",
+    "website",
+    "book_call_link",
+    "application_link",
+    "contact_form_url",
+    "link_in_bio_url",
+)
 
 
 def default_db_path() -> str:
@@ -85,6 +100,13 @@ def init_db(conn: sqlite3.Connection) -> None:
 
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, object]:
     return {key: row[key] for key in row.keys()}
+
+
+def is_sample_prospect(row: Dict[str, object]) -> bool:
+    brand = clean_text(row.get("brand") or row.get("name")).lower()
+    if brand in SAMPLE_PROSPECT_BRANDS:
+        return True
+    return any(is_placeholder_url(row.get(column)) for column in URL_COLUMNS)
 
 
 def get_settings(conn: sqlite3.Connection) -> Dict[str, str]:
@@ -292,10 +314,10 @@ def daily_instagram_queue(conn: sqlite3.Connection, cap: int = 12) -> List[Dict[
             END,
             CAST(NULLIF(fit_score, '') AS INTEGER) DESC,
             date_added ASC
-        LIMIT ?
         """,
-        (cap,),
+        (),
     ).fetchall()
+    high_rows = [row for row in high_rows if not is_sample_prospect(_row_to_dict(row))][:cap]
     if len(high_rows) >= cap:
         return [_row_to_dict(row) for row in high_rows]
 
@@ -309,10 +331,10 @@ def daily_instagram_queue(conn: sqlite3.Connection, cap: int = 12) -> List[Dict[
         + base_where
         + """
         ORDER BY CAST(NULLIF(fit_score, '') AS INTEGER) DESC, date_added ASC
-        LIMIT ?
         """,
-        (cap - len(high_rows),),
+        (),
     ).fetchall()
+    medium_rows = [row for row in medium_rows if not is_sample_prospect(_row_to_dict(row))][: cap - len(high_rows)]
     return [_row_to_dict(row) for row in [*high_rows, *medium_rows]]
 
 
@@ -330,7 +352,7 @@ def followups_due(conn: sqlite3.Connection, on_or_before: str) -> List[Dict[str,
         """,
         (on_or_before, on_or_before),
     ).fetchall()
-    return [_row_to_dict(row) for row in rows]
+    return [row for row in (_row_to_dict(row) for row in rows) if not is_sample_prospect(row)]
 
 
 def export_csv(conn: sqlite3.Connection) -> str:
@@ -356,7 +378,7 @@ def import_csv(conn: sqlite3.Connection, csv_text: str) -> Dict[str, int]:
 
 
 def metrics(conn: sqlite3.Connection) -> Dict[str, object]:
-    rows = list_prospects(conn, limit=10000)
+    rows = [row for row in list_prospects(conn, limit=10000) if not is_sample_prospect(row)]
 
     def count_where(predicate):
         return sum(1 for row in rows if predicate(row))

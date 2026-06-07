@@ -5,7 +5,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from closer_app.db import daily_instagram_queue, get_connection, get_prospect, init_db, list_prospects, metrics, upsert_prospect
+from closer_app.db import daily_instagram_queue, followups_due, get_connection, get_prospect, init_db, list_prospects, metrics, upsert_prospect
+from closer_app.utils import today_iso
 
 
 class DatabaseTests(unittest.TestCase):
@@ -144,6 +145,36 @@ class DatabaseTests(unittest.TestCase):
 
         self.assertEqual(stats["Priority prospects"], 3)
         self.assertEqual(stats["Instagram-ready active"], 2)
+
+    def test_sample_rows_are_excluded_from_live_workflow_counts(self):
+        upsert_prospect(
+            self.conn,
+            {
+                "brand": "RN Business Coach - Book a Strategy Call",
+                "instagram_url": "https://www.instagram.com/rncoachstudio/",
+                "website": "https://example-nurse-coach.com",
+                "priority": "Very High",
+                "fit_score": "95",
+                "follow_up_1_date": today_iso(),
+            },
+        )
+        real_id, _ = upsert_prospect(
+            self.conn,
+            {
+                "brand": "Real Nurse Coach",
+                "instagram_url": "https://www.instagram.com/realnursecoach/",
+                "website": "https://realnursecoach.com",
+                "priority": "High",
+                "fit_score": "82",
+                "follow_up_1_date": today_iso(),
+            },
+        )
+
+        self.assertEqual([row["prospect_id"] for row in daily_instagram_queue(self.conn, cap=12)], [real_id])
+        self.assertEqual([row["prospect_id"] for row in followups_due(self.conn, today_iso())], [real_id])
+        stats = metrics(self.conn)
+        self.assertEqual(stats["Total prospects saved"], 1)
+        self.assertEqual(stats["Priority prospects"], 1)
 
     def test_default_connection_falls_back_to_temp_db_on_disk_io_error(self):
         original_connect = sqlite3.connect

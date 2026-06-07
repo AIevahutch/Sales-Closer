@@ -33,6 +33,9 @@ class AppStructureTests(unittest.TestCase):
             "Priority prospects",
             "Instagram-ready",
             "Eva's Closer Desk",
+            "Invalid sample link",
+            "No verified website",
+            "No verified Instagram",
         ]:
             self.assertIn(label, app_source)
 

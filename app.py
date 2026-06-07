@@ -34,7 +34,7 @@ from closer_app.db import (
     update_prospect,
     upsert_prospect,
 )
-from closer_app.utils import add_days_iso, clean_text, env_or_setting, load_dotenv, today_iso
+from closer_app.utils import add_days_iso, clean_text, env_or_setting, is_placeholder_url, load_dotenv, today_iso
 
 
 load_dotenv()
@@ -500,6 +500,11 @@ APP_CSS = """
     padding: 0.4rem 0.55rem;
   }
 
+  .link-disabled {
+    color: #64748b;
+    cursor: not-allowed;
+  }
+
   .rail-title {
     color: var(--ink);
     font-size: 0.95rem;
@@ -606,9 +611,15 @@ def safe_link(url: object, label: str = "") -> str:
     text = clean_text(url)
     if not text:
         return ""
+    if is_placeholder_url(text):
+        return "<span class='link-disabled'>Invalid sample link</span>"
     href = text if text.startswith(("http://", "https://", "mailto:")) else f"https://{text}"
     visible = label or clean_text(text.replace("https://", "").replace("http://", ""), 42)
     return f"<a href='{escape(href, quote=True)}' target='_blank' rel='noopener noreferrer'>{escape(visible)}</a>"
+
+
+def disabled_action(label: str) -> str:
+    return f"<span class='link-disabled'>{escape(label)}</span>"
 
 
 def email_link(email: object) -> str:
@@ -805,8 +816,12 @@ def render_prospect_card(row: Dict[str, object], context: str) -> None:
     link_bits = []
     if row.get("instagram_url"):
         link_bits.append(safe_link(row.get("instagram_url"), "Open Instagram"))
+    else:
+        link_bits.append(disabled_action("No verified Instagram"))
     if row.get("website"):
-        link_bits.append(safe_link(row.get("website"), "Website"))
+        link_bits.append(safe_link(row.get("website"), "Open Website"))
+    else:
+        link_bits.append(disabled_action("No verified website"))
     if row.get("email"):
         link_bits.append(email_link(row.get("email")))
     link_html = "".join(f"<span class='post-action'>{link}</span>" for link in link_bits)

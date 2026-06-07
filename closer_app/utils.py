@@ -95,6 +95,18 @@ def extract_domain(url: object) -> str:
     return host.split("/")[0]
 
 
+def is_placeholder_url(url: object) -> bool:
+    text = clean_text(url).lower()
+    if not text:
+        return False
+    host = extract_domain(text)
+    if not host:
+        return False
+    reserved_hosts = {"example.com", "example.org", "example.net"}
+    reserved_suffixes = (".example", ".invalid", ".test")
+    return host in reserved_hosts or host.startswith("example-") or host.endswith(reserved_suffixes)
+
+
 def extract_email(*texts: object) -> str:
     joined = " ".join(clean_text(text) for text in texts if text)
     match = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", joined)
