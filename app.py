@@ -622,6 +622,20 @@ def disabled_action(label: str) -> str:
     return f"<span class='link-disabled'>{escape(label)}</span>"
 
 
+def instagram_action(url: object) -> str:
+    text = clean_text(url)
+    if not text or is_placeholder_url(text):
+        return disabled_action("No verified Instagram")
+    return safe_link(text, "Open Instagram")
+
+
+def instagram_handle_link(handle: object) -> str:
+    text = clean_text(handle).lstrip("@")
+    if not text:
+        return ""
+    return safe_link(f"https://www.instagram.com/{text}/", f"@{text}")
+
+
 def email_link(email: object) -> str:
     text = clean_text(email)
     if not text:
@@ -635,6 +649,8 @@ def table_cell(column: str, value: object) -> str:
         return ""
     if column in {"priority", "status", "dm_status", "email_status", "engagement_review_status", "outcome"}:
         return chip(text)
+    if column == "instagram_handle":
+        return instagram_handle_link(text)
     if column in {"instagram_url", "website", "book_call_link", "application_link", "contact_form_url", "link_in_bio_url"}:
         return safe_link(text)
     if column == "email":
@@ -814,10 +830,7 @@ def render_prospect_card(row: Dict[str, object], context: str) -> None:
     if not notes:
         notes = "Review public evidence, confirm fit, and keep personalized claims grounded before outreach."
     link_bits = []
-    if row.get("instagram_url"):
-        link_bits.append(safe_link(row.get("instagram_url"), "Open Instagram"))
-    else:
-        link_bits.append(disabled_action("No verified Instagram"))
+    link_bits.append(instagram_action(row.get("instagram_url")))
     if row.get("website"):
         link_bits.append(safe_link(row.get("website"), "Open Website"))
     else:
@@ -1568,6 +1581,7 @@ with tabs[4]:
                 "prospect_id",
                 "brand",
                 "instagram_handle",
+                "instagram_url",
                 "category",
                 "priority",
                 "fit_score",
@@ -1604,14 +1618,17 @@ with tabs[4]:
                     ("Category", selected.get("category")),
                     ("Priority", selected.get("priority")),
                     ("Fit score", selected.get("fit_score")),
+                    ("Candidate status", selected.get("status")),
                     ("DM status", selected.get("dm_status")),
+                    ("Engagement review", selected.get("engagement_review_status")),
                     ("Follow-up 1", selected.get("follow_up_1_date")),
                 ],
                 note=clean_text(selected.get("scoring_notes"), 300),
             )
+            st.markdown(instagram_action(selected.get("instagram_url")), unsafe_allow_html=True)
             render_action_band(
-                "Manual touch before sending",
-                "Open the Instagram profile, do a quick human review, then use the approved DM for manual sending.",
+                "Why this candidate needs review",
+                "DM generation moves candidates into Needs Review. Open Instagram, confirm the public evidence fits, then mark the candidate reviewed before approving or sending.",
             )
             if st.button("Generate DM for selected prospect", type="primary", use_container_width=True):
                 dm = make_instagram_dm(selected, api_key=settings["openai_api_key"])
@@ -1622,6 +1639,25 @@ with tabs[4]:
                 )
                 st.success("DM generated.")
                 rerun()
+            review_cols = st.columns(2)
+            with review_cols[0]:
+                if st.button("Mark Candidate Reviewed", use_container_width=True):
+                    update_prospect(
+                        conn,
+                        int(selected["prospect_id"]),
+                        {"status": "Reviewed", "engagement_review_status": "Manually Verified"},
+                    )
+                    st.success("Candidate marked reviewed.")
+                    rerun()
+            with review_cols[1]:
+                if st.button("Needs More Review", use_container_width=True):
+                    update_prospect(
+                        conn,
+                        int(selected["prospect_id"]),
+                        {"status": "Needs Review", "engagement_review_status": "Needs Manual Review"},
+                    )
+                    st.success("Candidate kept in review.")
+                    rerun()
             dm_text = st.text_area("Editable Instagram DM", value=clean_text(selected.get("dm_draft")), height=220)
             actions = st.columns(4)
             with actions[0]:

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from closer_app.db import daily_instagram_queue, followups_due, get_connection, get_prospect, init_db, list_prospects, metrics, upsert_prospect
+from closer_app.db import daily_instagram_queue, followups_due, get_connection, get_prospect, init_db, list_prospects, metrics, update_prospect, upsert_prospect
 from closer_app.utils import today_iso
 
 
@@ -175,6 +175,27 @@ class DatabaseTests(unittest.TestCase):
         stats = metrics(self.conn)
         self.assertEqual(stats["Total prospects saved"], 1)
         self.assertEqual(stats["Priority prospects"], 1)
+
+    def test_candidate_review_status_update_persists(self):
+        prospect_id, _ = upsert_prospect(
+            self.conn,
+            {
+                "brand": "Review Candidate",
+                "instagram_url": "https://www.instagram.com/reviewcandidate/",
+                "status": "Needs Review",
+                "engagement_review_status": "Needs Manual Review",
+            },
+        )
+
+        update_prospect(
+            self.conn,
+            prospect_id,
+            {"status": "Reviewed", "engagement_review_status": "Manually Verified"},
+        )
+
+        saved = get_prospect(self.conn, prospect_id)
+        self.assertEqual(saved["status"], "Reviewed")
+        self.assertEqual(saved["engagement_review_status"], "Manually Verified")
 
     def test_default_connection_falls_back_to_temp_db_on_disk_io_error(self):
         original_connect = sqlite3.connect

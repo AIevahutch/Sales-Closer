@@ -36,6 +36,12 @@ class AppStructureTests(unittest.TestCase):
             "Invalid sample link",
             "No verified website",
             "No verified Instagram",
+            "instagram_url",
+            "instagram_handle_link",
+            "Mark Candidate Reviewed",
+            "Needs More Review",
+            "Why this candidate needs review",
+            "DM generation moves candidates into Needs Review.",
         ]:
             self.assertIn(label, app_source)
 

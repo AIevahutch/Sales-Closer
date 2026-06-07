@@ -16,6 +16,7 @@ OUTREACH_STATUSES = [
     "New",
     "Draft Generated",
     "Needs Review",
+    "Reviewed",
     "Approved",
     "Ready to Send",
     "Sent",
@@ -151,4 +152,3 @@ SCENARIOS = [
     "What exactly would you do?",
     "How would a trial work?",
 ]
-
