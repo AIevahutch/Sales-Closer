@@ -30,6 +30,9 @@ class AppStructureTests(unittest.TestCase):
             "Approve email",
             "Gmail sending is deferred for this MVP",
             "Export all prospects CSV",
+            "Priority prospects",
+            "Instagram-ready",
+            "Eva's Closer Desk",
         ]:
             self.assertIn(label, app_source)
 
