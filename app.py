@@ -1566,12 +1566,18 @@ with tabs[4]:
     )
     cap = daily_cap
     queue = daily_instagram_queue(conn, cap=cap)
+    all_prospects = [row for row in list_prospects(conn, limit=10000) if row.get("instagram_url")]
+    sent_outreach = [
+        row
+        for row in all_prospects
+        if clean_text(row.get("dm_status")) == "Sent" or clean_text(row.get("date_dm_sent"))
+    ]
     render_stat_cards(
         [
             ("Queue", len(queue), f"Daily cap {cap}"),
-            ("Very High", count_rows(queue, "priority", "Very High"), "First priority"),
-            ("Needs Review", count_rows(queue, "dm_status", "Needs Review"), "Draft approval"),
-            ("Ready/Sent", count_rows(queue, "dm_status", "Ready to Send") + count_rows(queue, "dm_status", "Sent"), "Manual send lane"),
+            ("Needs Review", count_rows(all_prospects, "dm_status", "Needs Review"), "Draft approval"),
+            ("Ready", count_rows(all_prospects, "dm_status", "Ready to Send"), "Manual send lane"),
+            ("Sent", len(sent_outreach), "Manual DMs tracked"),
         ]
     )
     if queue:
@@ -1603,7 +1609,6 @@ with tabs[4]:
     else:
         render_action_band("No Instagram-ready prospects", "Save high-fit prospects with Instagram URLs to populate the daily queue.")
 
-    all_prospects = [row for row in list_prospects(conn, limit=10000) if row.get("instagram_url")]
     options = prospect_options(all_prospects)
     if options:
         selected_label = st.selectbox("Instagram prospect", list(options.keys()))
@@ -1706,6 +1711,30 @@ with tabs[4]:
                         )
                         st.success("DM marked sent and follow-up dates calculated.")
                         rerun()
+
+    if sent_outreach:
+        render_action_band(
+            "Sent outreach tracker",
+            "These candidates have been marked sent in the app, with follow-up dates ready for tracking.",
+        )
+        render_table(
+            sent_outreach,
+            [
+                "prospect_id",
+                "brand",
+                "instagram_handle",
+                "dm_status",
+                "status",
+                "date_dm_sent",
+                "follow_up_1_date",
+                "follow_up_2_date",
+            ],
+        )
+    else:
+        render_action_band(
+            "No DMs marked sent yet",
+            "After you click Mark DM Sent, the candidate will move into the sent tracker below with follow-up dates.",
+        )
 
 
 with tabs[5]:

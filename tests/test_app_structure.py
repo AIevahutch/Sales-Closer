@@ -42,6 +42,9 @@ class AppStructureTests(unittest.TestCase):
             "Needs More Review",
             "Why this candidate needs review",
             "DM generation moves candidates into Needs Review.",
+            "Sent outreach tracker",
+            "No DMs marked sent yet",
+            "\"Sent\", len(sent_outreach)",
         ]:
             self.assertIn(label, app_source)
 

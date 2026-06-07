@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from closer_app.db import daily_instagram_queue, followups_due, get_connection, get_prospect, init_db, list_prospects, metrics, update_prospect, upsert_prospect
-from closer_app.utils import today_iso
+from closer_app.utils import add_days_iso, today_iso
 
 
 class DatabaseTests(unittest.TestCase):
@@ -196,6 +196,38 @@ class DatabaseTests(unittest.TestCase):
         saved = get_prospect(self.conn, prospect_id)
         self.assertEqual(saved["status"], "Reviewed")
         self.assertEqual(saved["engagement_review_status"], "Manually Verified")
+
+    def test_mark_dm_sent_fields_persist(self):
+        today = today_iso()
+        prospect_id, _ = upsert_prospect(
+            self.conn,
+            {
+                "brand": "Sent Candidate",
+                "instagram_url": "https://www.instagram.com/sentcandidate/",
+                "dm_status": "Ready to Send",
+                "status": "Ready to Send",
+                "dm_draft": "Approved DM",
+            },
+        )
+
+        update_prospect(
+            self.conn,
+            prospect_id,
+            {
+                "dm_status": "Sent",
+                "status": "Sent",
+                "date_dm_sent": today,
+                "follow_up_1_date": add_days_iso(today, 2),
+                "follow_up_2_date": add_days_iso(today, 6),
+            },
+        )
+
+        saved = get_prospect(self.conn, prospect_id)
+        self.assertEqual(saved["dm_status"], "Sent")
+        self.assertEqual(saved["status"], "Sent")
+        self.assertEqual(saved["date_dm_sent"], today)
+        self.assertEqual(saved["follow_up_1_date"], add_days_iso(today, 2))
+        self.assertEqual(saved["follow_up_2_date"], add_days_iso(today, 6))
 
     def test_default_connection_falls_back_to_temp_db_on_disk_io_error(self):
         original_connect = sqlite3.connect
