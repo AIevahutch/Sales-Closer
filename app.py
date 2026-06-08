@@ -743,6 +743,10 @@ def int_stat(stats: Dict[str, object], label: str) -> int:
         return 0
 
 
+def is_sent_outreach(row: Dict[str, object]) -> bool:
+    return clean_text(row.get("dm_status")) == "Sent" or clean_text(row.get("status")) == "Sent"
+
+
 def initials(value: object) -> str:
     text = clean_text(value) or "Lead"
     words = [word for word in re.split(r"[^A-Za-z0-9]+", text) if word]
@@ -1567,11 +1571,7 @@ with tabs[4]:
     cap = daily_cap
     queue = daily_instagram_queue(conn, cap=cap)
     all_prospects = [row for row in list_prospects(conn, limit=10000) if row.get("instagram_url")]
-    sent_outreach = [
-        row
-        for row in all_prospects
-        if clean_text(row.get("dm_status")) == "Sent" or clean_text(row.get("date_dm_sent"))
-    ]
+    sent_outreach = [row for row in all_prospects if is_sent_outreach(row)]
     render_stat_cards(
         [
             ("Queue", len(queue), f"Daily cap {cap}"),

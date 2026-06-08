@@ -45,6 +45,7 @@ class AppStructureTests(unittest.TestCase):
             "Sent outreach tracker",
             "No DMs marked sent yet",
             "\"Sent\", len(sent_outreach)",
+            "is_sent_outreach",
         ]:
             self.assertIn(label, app_source)
 
