@@ -32,6 +32,22 @@ def classify_category(prospect: Dict[str, object]) -> Tuple[str, int]:
 
     if _contains(text, "bcba"):
         return "BCBA business coach", 82
+    if _contains(text, "aesthetic injector", "injectable training", "injector training", "botox training", "dermal filler"):
+        return "Aesthetic injector training", 86
+    if _contains(text, "med spa", "medical spa", "aesthetic business", "spa owner"):
+        return "Med spa business coaching", 84
+    if _contains(text, "land investing", "real estate investing", "real estate investor", "creative finance", "subto"):
+        return "Real estate investing education", 84
+    if _contains(text, "business acquisition", "buy a business", "small business buyer", "acquire", "acquisition accelerator"):
+        return "Business acquisition education", 84
+    if _contains(text, "coding bootcamp", "tech bootcamp", "data analytics bootcamp", "cybersecurity bootcamp"):
+        return "Tech career bootcamp", 82
+    if _contains(text, "executive career", "reverse recruiting", "career bootcamp", "career accelerator", "salary negotiation"):
+        return "Executive career coaching", 82
+    if _contains(text, "creator economy", "creator college", "creator business", "content creator mastermind", "high ticket coaching", "business mastermind"):
+        return "Creator/business mastermind", 78
+    if _contains(text, "premium fitness", "weight loss coaching", "fertility coaching", "wellness coaching"):
+        return "Premium wellness coaching", 74
     if _contains(text, "aba", "applied behavior analysis"):
         if _contains(text, "growth", "clinic", "practice", "startup", "business"):
             return "ABA growth consultant", 82
@@ -95,7 +111,7 @@ def _price_signal(prospect: Dict[str, object]) -> bool:
     explicit = clean_text(prospect.get("estimated_offer_price")).lower()
     text = " ".join(clean_text(value).lower() for value in prospect.values())
     if explicit and explicit not in {"unknown", "n/a", "none"}:
-        numbers = [int(match.replace(",", "")) for match in re.findall(r"\$?([2-9][0-9],[0-9]{3}|[2-9][0-9]{3,})", explicit)]
+        numbers = [int(match.replace(",", "")) for match in re.findall(r"\$?([1-9][0-9]{1,2},[0-9]{3}|[2-9][0-9]{3,})", explicit)]
         if numbers and max(numbers) >= 2000:
             return True
     return _contains(text, "high ticket", "mastermind", "certification", "cohort", "application only")
@@ -109,6 +125,12 @@ def score_prospect(prospect: Dict[str, object]) -> Dict[str, object]:
 
     if category in TARGET_CATEGORIES and category != "Not a fit":
         if category in {
+            "Aesthetic injector training",
+            "Med spa business coaching",
+            "Real estate investing education",
+            "Business acquisition education",
+            "Tech career bootcamp",
+            "Executive career coaching",
             "Nurse business coach",
             "Nurse career coach",
             "Nurse certification program",
@@ -198,4 +220,3 @@ def score_prospect(prospect: Dict[str, object]) -> Dict[str, object]:
         "funnel_type": funnel_type,
         "scoring_notes": "; ".join(reasons),
     }
-

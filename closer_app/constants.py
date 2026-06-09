@@ -1,6 +1,14 @@
 """Shared constants for the closer acquisition MVP."""
 
 TARGET_CATEGORIES = [
+    "Aesthetic injector training",
+    "Med spa business coaching",
+    "Real estate investing education",
+    "Business acquisition education",
+    "Tech career bootcamp",
+    "Executive career coaching",
+    "Creator/business mastermind",
+    "Premium wellness coaching",
     "Nurse business coach",
     "Nurse career coach",
     "Nurse certification program",
@@ -53,6 +61,16 @@ ENGAGEMENT_REVIEW_STATUSES = [
 SEARCH_PROVIDERS = ["sample", "tavily", "brave", "serpapi"]
 
 PREBUILT_SEARCH_QUERIES = {
+    "High-Ticket Offers": [
+        "aesthetic injector training $8000",
+        "med spa business coaching book a strategy call",
+        "real estate investing mastermind apply",
+        "business acquisition accelerator apply",
+        "executive career coaching $10000",
+        "coding bootcamp tuition apply instagram",
+        "creator business mastermind application",
+        "premium wellness coaching application",
+    ],
     "Nurse/Healthcare": [
         "site:.com nurse business coach",
         "site:.com nurse entrepreneur coach",

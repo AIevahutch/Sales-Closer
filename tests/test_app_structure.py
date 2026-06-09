@@ -46,6 +46,10 @@ class AppStructureTests(unittest.TestCase):
             "No DMs marked sent yet",
             "\"Sent\", len(sent_outreach)",
             "is_sent_outreach",
+            "Remove or reject",
+            "Mark Not a Fit",
+            "Confirm permanent delete",
+            "Delete prospect",
         ]:
             self.assertIn(label, app_source)
 
@@ -81,7 +85,7 @@ class AppStructureTests(unittest.TestCase):
     def test_prebuilt_queries_cover_target_markets(self):
         all_queries = " ".join(query.lower() for queries in PREBUILT_SEARCH_QUERIES.values() for query in queries)
 
-        for term in ["nurse business coach", "nurse career coach", "aba business coach", "bcba business coach"]:
+        for term in ["nurse business coach", "nurse career coach", "aba business coach", "bcba business coach", "aesthetic injector training", "real estate investing mastermind"]:
             self.assertIn(term, all_queries)
 
     def test_app_avoids_arrow_backed_widgets_for_local_reliability(self):

@@ -67,7 +67,26 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(category, "BCBA business coach")
         self.assertGreaterEqual(confidence, 80)
 
+    def test_scores_broader_high_ticket_targets(self):
+        prospect = {
+            "brand": "Land Academy",
+            "bio_notes": "Land investing membership with application funnel, coaching, tools, testimonials, and premium monthly plan.",
+            "instagram_url": "https://www.instagram.com/landacademy/",
+            "website": "https://landacademy.com/join/",
+            "application_link": "https://landacademy.com/join/",
+            "offer_type": "Membership",
+            "estimated_offer_price": "$11,066/month premium plan",
+            "funnel_type": "Application funnel",
+            "testimonials_notes": "Member success stories listed publicly.",
+            "outreach_angle": "Support application follow-up for premium land investing prospects.",
+        }
+
+        scored = score_prospect(prospect)
+
+        self.assertEqual(scored["category"], "Real estate investing education")
+        self.assertGreaterEqual(scored["fit_score"], 80)
+        self.assertEqual(scored["priority"], "Very High")
+
 
 if __name__ == "__main__":
     unittest.main()
-

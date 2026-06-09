@@ -952,6 +952,28 @@ def prospect_options(rows: List[Dict[str, object]]) -> Dict[str, int]:
     return options
 
 
+def render_dashboard_cleanup(row: Dict[str, object], context: str) -> None:
+    if is_sent_outreach(row):
+        return
+    prospect_id = int(row["prospect_id"])
+    label = prospect_label(row)
+    key_base = f"{context}-{prospect_id}"
+    with st.expander(f"Remove or reject {label}"):
+        st.caption("Use reject to keep history. Use delete only when the prospect should leave the active workflow completely.")
+        reject_col, delete_col = st.columns(2)
+        with reject_col:
+            if st.button("Mark Not a Fit", key=f"reject-{key_base}", use_container_width=True):
+                update_prospect(conn, prospect_id, {"status": "Not a Fit", "priority": "Do Not Contact", "outcome": "Rejected"})
+                st.warning(f"{label} marked Not a Fit.")
+                rerun()
+        with delete_col:
+            confirm_delete = st.checkbox("Confirm permanent delete", key=f"confirm-delete-{key_base}")
+            if st.button("Delete prospect", key=f"delete-{key_base}", use_container_width=True, disabled=not confirm_delete):
+                delete_prospect(conn, prospect_id)
+                st.warning(f"{label} deleted.")
+                rerun()
+
+
 def next_action(stats: Dict[str, object], queue: List[Dict[str, object]], due: List[Dict[str, object]]) -> Tuple[str, str]:
     total_saved = int(stats.get("Total prospects saved") or 0)
     dms_generated = int(stats.get("DMs generated") or 0)
@@ -1146,6 +1168,7 @@ with tabs[0]:
             )
             for row in dashboard_due[:5]:
                 render_prospect_card(row, "Follow-up due")
+                render_dashboard_cleanup(row, "due")
         elif dashboard_queue:
             render_activity_card(
                 "Today's Instagram queue",
@@ -1155,6 +1178,7 @@ with tabs[0]:
             )
             for row in dashboard_queue[:5]:
                 render_prospect_card(row, "Daily queue")
+                render_dashboard_cleanup(row, "queue")
         elif all_saved_prospects:
             render_activity_card(
                 "Pipeline needs a next move",
@@ -1164,6 +1188,8 @@ with tabs[0]:
             )
             for row in all_saved_prospects[:5]:
                 render_prospect_card(row, "Saved prospect")
+                if not is_sent_outreach(row):
+                    render_dashboard_cleanup(row, "saved")
         else:
             render_activity_card(
                 "Start the feed with discovery",
